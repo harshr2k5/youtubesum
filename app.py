@@ -64,7 +64,7 @@ def ask_sarvam(context, question):
         temperature=0.2
     )
 
-    return response["choices"][0]["message"]["content"]
+    return response.choices[0].message.content
 
 
 youtube_url = st.text_input("Paste YouTube Lecture URL")

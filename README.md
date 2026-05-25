@@ -1,1 +1,1 @@
-Gemini API key required
+Sarvam API key required

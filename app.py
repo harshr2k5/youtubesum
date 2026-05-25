@@ -1,13 +1,13 @@
 import streamlit as st
 from youtube_transcript_api import YouTubeTranscriptApi
-import google.generativeai as genai
 from urllib.parse import urlparse, parse_qs
+from sarvamai import SarvamAI
 
-GEMINI_API_KEY = ""
+SARVAM_API_KEY = ""
 
-genai.configure(api_key=GEMINI_API_KEY)
-
-model = genai.GenerativeModel("gemini-2.0-flash")
+client = SarvamAI(
+    api_subscription_key=SARVAM_API_KEY
+)
 
 st.set_page_config(
     page_title="YouTube Query",
@@ -15,6 +15,7 @@ st.set_page_config(
 )
 
 st.title("YouTube Query Tool")
+
 
 def extract_video_id(url):
     parsed_url = urlparse(url)
@@ -38,16 +39,12 @@ def get_transcript(video_id):
     return full_text
 
 
-def ask_gemini(context, question):
+def ask_sarvam(context, question):
 
     prompt = f"""
-    You are a helpful AI tutor.
+    You are an AI tool.
 
-    Answer ONLY using the transcript provided below.
-
-    If the answer is not mentioned in the transcript,
-    say:
-    "This was not covered in the lecture."
+    Answer using the transcript of a YouTube video provided below.
 
     Transcript:
     {context}
@@ -56,9 +53,18 @@ def ask_gemini(context, question):
     {question}
     """
 
-    response = model.generate_content(prompt)
+    response = client.chat.completions(
+        messages=[
+            {
+                "role": "user",
+                "content": prompt
+            }
+        ],
+        model="sarvam-m",
+        temperature=0.2
+    )
 
-    return response.text
+    return response["choices"][0]["message"]["content"]
 
 
 youtube_url = st.text_input("Paste YouTube Lecture URL")
@@ -76,31 +82,37 @@ if youtube_url:
 
         st.success("Transcript loaded successfully!")
 
-        if st.button("Generate Lecture Summary"):
+        if st.button("Generate Summary"):
 
             summary_prompt = """
-            Summarize this lecture in concise bullet points.
-            Highlight the most important concepts.
+            Summarize this video in concise bullet points.
+            Highlight the important points.
             """
 
-            summary = ask_gemini(transcript_text, summary_prompt)
+            summary = ask_sarvam(
+                transcript_text,
+                summary_prompt
+            )
 
-            st.subheader("📘 Lecture Summary")
+            st.subheader("Summary")
             st.write(summary)
 
-        if st.button("Generate Exam Notes"):
+        if st.button("Generate Notes (for Lectures)"):
 
             notes_prompt = """
             Create concise exam revision notes from this lecture.
             Include important concepts and definitions.
             """
 
-            notes = ask_gemini(transcript_text, notes_prompt)
+            notes = ask_sarvam(
+                transcript_text,
+                notes_prompt
+            )
 
-            st.subheader("📝 Exam Notes")
+            st.subheader("Exam Notes")
             st.write(notes)
 
-        st.subheader("💬 Ask Questions")
+        st.subheader("Ask Questions")
 
         user_question = st.text_input(
             "Ask anything from the lecture"
@@ -110,7 +122,7 @@ if youtube_url:
 
             if user_question.strip() != "":
 
-                answer = ask_gemini(
+                answer = ask_sarvam(
                     transcript_text,
                     user_question
                 )
